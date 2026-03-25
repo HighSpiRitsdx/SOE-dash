@@ -1,0 +1,4 @@
+node_modules/
+dist/
+ifrs17-fact-database.json
+public/data/ifrs17-seed.json
