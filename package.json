@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "generate:data": "C:\\Progra~1\\nodejs\\node.exe ./scripts/generate-ifrs17-data.mjs",
+    "generate:data": "node ./scripts/generate-ifrs17-data.mjs",
     "dev": "npm run generate:data && vite",
     "build": "npm run generate:data && tsc -b && vite build",
     "lint": "eslint .",
