@@ -1,5 +1,3 @@
-import { useEffect, useMemo, useState } from 'react'
-import { geoMercator, geoPath, type GeoProjection } from 'd3-geo'
 import { formatSignedAmount } from '../lib/ifrs17'
 
 type BranchRow = {
@@ -13,145 +11,65 @@ type ChinaBranchMapProps = {
   data: BranchRow[]
 }
 
-type ChinaFeatureCollection = GeoJSON.FeatureCollection<
-  GeoJSON.Geometry,
-  {
-    name?: string
-    center?: [number, number]
-    centroid?: [number, number]
-  }
->
-
-const branchProvinceMap: Record<string, string> = {
-  '\u4e0a\u6d77\u5206': '\u4e0a\u6d77\u5e02',
-  '\u6c5f\u82cf\u5206': '\u6c5f\u82cf\u7701',
-  '\u5317\u4eac\u5206': '\u5317\u4eac\u5e02',
-  '\u5929\u6d25\u5206': '\u5929\u6d25\u5e02',
-  '\u91cd\u5e86\u5206': '\u91cd\u5e86\u5e02',
-}
-
-function resolveProvinceName(branchLabel: string) {
-  if (branchProvinceMap[branchLabel]) return branchProvinceMap[branchLabel]
-  if (branchLabel.endsWith('\u5206')) return `${branchLabel.slice(0, -1)}\u7701`
-  return branchLabel
-}
-
-function provinceFill(isActive: boolean) {
-  return isActive ? 'rgba(0, 94, 184, 0.22)' : 'rgba(0, 94, 184, 0.07)'
+const markerPositions: Record<string, { x: number; y: number; dx: number; dy: number }> = {
+  江苏分: { x: 66.58, y: 47.61, dx: 18, dy: -72 },
+  上海分: { x: 68.71, y: 51.36, dx: 22, dy: -18 },
 }
 
 export function ChinaBranchMap({ data }: ChinaBranchMapProps) {
-  const [mapData, setMapData] = useState<ChinaFeatureCollection | null>(null)
-
-  useEffect(() => {
-    let active = true
-
-    fetch('/maps/china-provinces.json')
-      .then((response) => response.json() as Promise<ChinaFeatureCollection>)
-      .then((payload) => {
-        if (!active) return
-        setMapData(payload)
-      })
-      .catch(() => {
-        if (!active) return
-        setMapData(null)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  const maxValue = Math.max(...data.map((row) => Math.abs(row.value)), 1)
-  const highlightedProvinces = useMemo(
-    () =>
-      new Map(
-        data.map((row) => [
-          resolveProvinceName(row.label),
-          {
-            ...row,
-            province: resolveProvinceName(row.label),
-          },
-        ]),
-      ),
-    [data],
-  )
-
-  const projectedMap = useMemo(() => {
-    if (!mapData) return null
-
-    const width = 760
-    const height = 500
-    const projection: GeoProjection = geoMercator().fitSize([width, height], mapData)
-    const pathBuilder = geoPath(projection)
-
-    const provinces = mapData.features.map((feature) => {
-      const properties = feature.properties || {}
-      const provinceName = properties.name || ''
-      const highlight = highlightedProvinces.get(provinceName)
-      const centroid = properties.centroid || properties.center || pathBuilder.centroid(feature)
-
-      return {
-        id: provinceName,
-        provinceName,
-        path: pathBuilder(feature) || '',
-        centroid,
-        highlight,
-      }
-    })
-
-    return { width, height, provinces }
-  }, [highlightedProvinces, mapData])
-
   return (
     <section className="surface-card reveal china-map-section">
       <div className="card-head">
         <div>
           <p className="eyebrow">Branch</p>
-          <h3>{'\u5229\u6da6\u6309\u673a\u6784\u5206\u5e03'}</h3>
+          <h3>利润按机构分布</h3>
         </div>
       </div>
 
-      <div className="china-map-card">
-        {projectedMap ? (
-          <svg
-            viewBox={`0 0 ${projectedMap.width} ${projectedMap.height}`}
-            className="china-map-svg"
-            role="img"
-            aria-label={('\u4e2d\u56fd\u673a\u6784\u5229\u6da6\u5730\u56fe')}
-          >
-            {projectedMap.provinces.map((province) => (
-              <path
-                key={province.id}
-                d={province.path}
-                className="china-province-shape"
-                style={{ fill: provinceFill(Boolean(province.highlight)) }}
-              />
-            ))}
+      <div className="china-map-business-card">
+        <div className="china-map-image-stage">
+          <img
+            src="/images/china-business-map.svg"
+            alt="中国机构利润地图"
+            className="china-map-image"
+          />
 
-            {projectedMap.provinces
-              .filter((province) => province.highlight)
-              .map((province) => {
-                const [x, y] = province.centroid || [0, 0]
-                const radius = 10 + (Math.abs(province.highlight?.value || 0) / maxValue) * 14
+          {data.map((row) => {
+            const marker = markerPositions[row.label]
+            if (!marker) return null
 
-                return (
-                  <g key={`${province.id}-bubble`} transform={`translate(${x}, ${y})`}>
-                    <circle r={radius} className="china-branch-bubble" />
-                    <text x={radius + 10} y={-5} className="china-branch-label">
-                      {province.highlight?.label}
-                    </text>
-                    <text x={radius + 10} y={14} className="china-branch-value">
-                      {formatSignedAmount(province.highlight?.value || 0)} /{' '}
-                      {(province.highlight?.share || 0).toFixed(1)}%
-                    </text>
-                  </g>
-                )
-              })}
-          </svg>
-        ) : (
-          <div className="china-map-loading">{'\u6b63\u5728\u52a0\u8f7d\u4e2d\u56fd\u5730\u56fe\u2026'}</div>
-        )}
+            return (
+              <div
+                key={row.key}
+                className="china-image-marker"
+                style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
+              >
+                <span className="china-image-marker-ring" />
+                <span className="china-image-marker-core" />
+                <svg
+                  className="china-image-marker-link"
+                  style={{ left: 0, top: marker.dy }}
+                  width={Math.max(marker.dx + 8, 12)}
+                  height={Math.abs(marker.dy) + 28}
+                  viewBox={`0 0 ${Math.max(marker.dx + 8, 12)} ${Math.abs(marker.dy) + 28}`}
+                >
+                  <path
+                    d={`M 6 ${Math.abs(marker.dy) + 24} C 10 ${Math.abs(marker.dy) + 10}, ${marker.dx - 8} 18, ${marker.dx} 10`}
+                    className="china-image-link-path"
+                  />
+                </svg>
+                <div
+                  className="china-image-callout"
+                  style={{ left: marker.dx, top: marker.dy - 10 }}
+                >
+                  <strong>{row.label}</strong>
+                  <span>{formatSignedAmount(row.value)}</span>
+                  <small>{row.share.toFixed(1)}%</small>
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
         <div className="dimension-legend">
           {data.map((row) => (

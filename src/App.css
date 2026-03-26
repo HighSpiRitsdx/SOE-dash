@@ -458,11 +458,103 @@
 }
 
 .dimension-pie-card,
-.china-map-card {
+.china-map-card,
+.china-map-business-card {
   display: grid;
   grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
   gap: 12px;
   align-items: center;
+}
+
+.china-map-image-stage {
+  position: relative;
+  min-height: 320px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(175, 190, 210, 0.7);
+  background: linear-gradient(180deg, rgba(249, 251, 254, 0.96), rgba(238, 243, 249, 0.98));
+}
+
+.china-map-image {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  display: block;
+}
+
+.china-image-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.china-image-marker-ring,
+.china-image-marker-core {
+  position: absolute;
+  border-radius: 999px;
+}
+
+.china-image-marker-ring {
+  width: 24px;
+  height: 24px;
+  left: -12px;
+  top: -12px;
+  background: rgba(0, 94, 184, 0.18);
+}
+
+.china-image-marker-core {
+  width: 14px;
+  height: 14px;
+  left: -7px;
+  top: -7px;
+  background: #00338d;
+  border: 2px solid #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 51, 141, 0.18);
+}
+
+.china-image-marker-link {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.china-image-link-path {
+  fill: none;
+  stroke: rgba(0, 51, 141, 0.44);
+  stroke-width: 2;
+}
+
+.china-image-callout {
+  position: absolute;
+  min-width: 132px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(181, 197, 214, 0.95);
+  box-shadow: 0 10px 18px rgba(27, 47, 79, 0.12);
+  display: grid;
+  gap: 2px;
+}
+
+.china-image-callout strong,
+.china-image-callout span,
+.china-image-callout small {
+  font-family: 'IBM Plex Mono', 'Consolas', monospace;
+}
+
+.china-image-callout strong {
+  color: #24446f;
+  font-size: 11px;
+}
+
+.china-image-callout span {
+  color: #00338d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.china-image-callout small {
+  color: #60758f;
+  font-size: 11px;
 }
 
 .dimension-legend {
@@ -496,46 +588,6 @@
   color: #5b7088;
   font-family: 'IBM Plex Mono', 'Consolas', monospace;
   font-size: 12px;
-}
-
-.china-map-svg {
-  width: 100%;
-  height: 320px;
-}
-
-.china-province-shape {
-  stroke: #9db8d8;
-  stroke-width: 1.2;
-  transition: fill 160ms ease;
-}
-
-.china-province-shape:hover {
-  fill: rgba(0, 94, 184, 0.18) !important;
-}
-
-.china-branch-bubble {
-  fill: rgba(0, 94, 184, 0.18);
-  stroke: #005eb8;
-  stroke-width: 2;
-}
-
-.china-branch-label {
-  font-size: 12px;
-  font-weight: 700;
-  fill: #21364f;
-}
-
-.china-branch-value {
-  font-size: 11px;
-  fill: #5b7088;
-}
-
-.china-map-loading {
-  min-height: 320px;
-  display: grid;
-  place-items: center;
-  color: #62758d;
-  font-size: 14px;
 }
 
 .attribution-toolbar {
