@@ -1,4 +1,8 @@
 node_modules/
 dist/
 ifrs17-fact-database.json
+ifrs17-fact-preview.json
+ifrs17-management-cube.json
 public/data/ifrs17-seed.json
+source.xlsx
+~$*.xlsx
