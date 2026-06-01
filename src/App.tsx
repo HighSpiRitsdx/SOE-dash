@@ -3419,7 +3419,14 @@ function App() {
     setCleanReportMode(true)
     setMode('report')
     setUploadStatus('清洁版报告已准备，可导出为 PDF。')
-    window.setTimeout(() => window.print(), 180)
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      window.dispatchEvent(new Event('resize'))
+      window.setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+        window.print()
+      }, 450)
+    }, 120)
   }
 
   if (!template) {
