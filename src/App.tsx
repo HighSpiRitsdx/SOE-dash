@@ -79,9 +79,11 @@ type ApprovedResult = {
   kpis: Array<{ label: string; value: string }>
 }
 
-const defaultSnapshotPath = '/data/lukang-workbook-snapshot.json'
+const publicAssetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+
+const defaultSnapshotPath = publicAssetPath('data/lukang-workbook-snapshot.json')
 const defaultRealSourcePath = 'D:\\Codex\\workspace\\SOE analysis\\public\\data\\ifrs17-upload-source-sample.csv'
-const defaultDemoSourcePath = '/data/ifrs17-default-demo-source.csv'
+const defaultDemoSourcePath = publicAssetPath('data/ifrs17-default-demo-source.csv')
 const maxUploadRows = 120
 const maxUploadCols = 36
 
