@@ -102,6 +102,11 @@ const tablePercentFormatter = new Intl.NumberFormat('zh-CN', {
   style: 'percent',
 })
 
+const rawTableAmountFormatter = new Intl.NumberFormat('zh-CN', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
+
 function formatWanAmount(value: unknown, withUnit = false) {
   const number = typeof value === 'number' ? value : Number(String(value ?? '').replace(/[(),]/g, ''))
   if (!Number.isFinite(number)) return String(value ?? '-')
@@ -150,6 +155,13 @@ function formatTablePercent(value: unknown) {
   return tablePercentFormatter.format(ratio)
 }
 
+function formatRawTableAmount(value: unknown) {
+  const parsed = parseDisplayNumber(value)
+  if (parsed.number === undefined) return parsed.raw || ''
+  const formatted = rawTableAmountFormatter.format(Math.abs(parsed.number))
+  return parsed.number < 0 ? `(${formatted})` : formatted
+}
+
 function formatStructuredCell(
   value: unknown,
   header = '',
@@ -162,7 +174,7 @@ function formatStructuredCell(
   const parsed = parseDisplayNumber(text)
   if (parsed.number === undefined) return normalizeCurrentPeriodLabel(text)
   if (parsed.isPercent || /率|比例|ratio|Rate/i.test(normalizedHeader)) return formatTablePercent(text)
-  if (unit === 'none') return text
+  if (unit === 'none') return formatRawTableAmount(text)
   return formatTableAmount(text, unit)
 }
 
@@ -1854,6 +1866,28 @@ function buildIfieCostTables(sheet: SheetSnapshot, query: string): StructuredTab
     .filter((table): table is StructuredTableBlock => Boolean(table))
 }
 
+function buildSourceOfEarningsTable(sheet: SheetSnapshot, query: string): StructuredTableBlock[] {
+  const startRow = sheet.cells.findIndex((row) => compactText(displayCellText(row[2])) === '现行税前营业利润')
+  const endRow = sheet.cells.findIndex((row, index) => index > startRow && compactText(displayCellText(row[2])) === 'IFRS17税前营业利润')
+  if (startRow < 0 || endRow < startRow) return []
+
+  const rows = sheet.cells
+    .slice(startRow, endRow + 1)
+    .map((row) => [displayCellText(row[2]).replace(/\s+/g, ''), displayCellText(row[3])])
+    .filter((row) => rowHasContent(row))
+
+  const block: StructuredTableBlock = {
+    id: 'source-of-earnings-company',
+    title: '现行vsI17 利源分析',
+    subtitle: '按原表公司级桥接口径展示，不拆分账户列。',
+    headers: ['项目', '公司'],
+    rows,
+    amountUnit: 'none',
+  }
+
+  return [block].map((table) => filterStructuredRows(table, query)).filter((table): table is StructuredTableBlock => Boolean(table))
+}
+
 function buildStructuredTables(sheet: SheetSnapshot, query: string, sheetMap?: Map<string, SheetSnapshot>): StructuredTableBlock[] {
   if (sheet.name === '0.I17利润拆解') return buildProfitBreakdownTables(sheet, query)
   if (sheet.name === '1.1 保险服务收入') return buildInsuranceRevenueTables(sheet, query, sheetMap)
@@ -1861,6 +1895,7 @@ function buildStructuredTables(sheet: SheetSnapshot, query: string, sheetMap?: M
   if (sheet.name === '1.5 投成拆分') return buildInvestmentComponentTables(sheet, query)
   if (sheet.name === '1.6 损失摊销' || sheet.name === '1.7 获取费用摊销') return buildCurrentPeriodRollForwardTable(sheet, query)
   if (sheet.name === '2.1 保险金融负债成本') return buildIfieCostTables(sheet, query)
+  if (sheet.name === '现行vsI17_利源分析') return buildSourceOfEarningsTable(sheet, query)
   return []
 }
 
@@ -2051,7 +2086,7 @@ function CleanOutputTable({ sheet, query, sheetMap }: { sheet: SheetSnapshot; qu
   if (sheet.name === '1.3 RA') {
     return <RatioOutputTables sheet={sheet} query={query} />
   }
-  if (['0.I17利润拆解', '1.1 保险服务收入', '1.4 首日亏损', '1.5 投成拆分', '1.6 损失摊销', '1.7 获取费用摊销', '2.1 保险金融负债成本'].includes(sheet.name)) {
+  if (['0.I17利润拆解', '1.1 保险服务收入', '1.4 首日亏损', '1.5 投成拆分', '1.6 损失摊销', '1.7 获取费用摊销', '2.1 保险金融负债成本', '现行vsI17_利源分析'].includes(sheet.name)) {
     return <StructuredOutputTables sheet={sheet} query={query} sheetMap={sheetMap} />
   }
 
