@@ -5,6 +5,7 @@ import { basename, extname } from 'node:path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.GITHUB_PAGES === 'true' ? '/SOE-dash/' : '/',
   plugins: [
     react(),
     {
