@@ -1,0 +1,193 @@
+{
+  "workbook": "ifrs17-analysis-workbook.xlsx",
+  "generatedAt": "2026-06-01T01:53:49.461Z",
+  "comparedCells": 3466,
+  "matchedCells": 3466,
+  "mismatchedCells": 0,
+  "skippedCells": 20660,
+  "bySheet": [
+    {
+      "sheet": "I17利润表",
+      "compared": 283,
+      "matched": 283,
+      "mismatched": 0,
+      "skipped": 1767
+    },
+    {
+      "sheet": "0.I17利润拆解",
+      "compared": 590,
+      "matched": 590,
+      "mismatched": 0,
+      "skipped": 1481
+    },
+    {
+      "sheet": "调整项",
+      "compared": 1,
+      "matched": 1,
+      "mismatched": 0,
+      "skipped": 197
+    },
+    {
+      "sheet": "直保",
+      "compared": 255,
+      "matched": 255,
+      "mismatched": 0,
+      "skipped": 330
+    },
+    {
+      "sheet": "直保长险",
+      "compared": 297,
+      "matched": 297,
+      "mismatched": 0,
+      "skipped": 539
+    },
+    {
+      "sheet": "传统账户-长",
+      "compared": 165,
+      "matched": 165,
+      "mismatched": 0,
+      "skipped": 627
+    },
+    {
+      "sheet": "分红账户1",
+      "compared": 165,
+      "matched": 165,
+      "mismatched": 0,
+      "skipped": 627
+    },
+    {
+      "sheet": "分红账户2",
+      "compared": 164,
+      "matched": 164,
+      "mismatched": 0,
+      "skipped": 628
+    },
+    {
+      "sheet": "万能账户",
+      "compared": 165,
+      "matched": 165,
+      "mismatched": 0,
+      "skipped": 627
+    },
+    {
+      "sheet": "投连账户",
+      "compared": 164,
+      "matched": 164,
+      "mismatched": 0,
+      "skipped": 628
+    },
+    {
+      "sheet": "短险",
+      "compared": 81,
+      "matched": 81,
+      "mismatched": 0,
+      "skipped": 645
+    },
+    {
+      "sheet": "再保",
+      "compared": 70,
+      "matched": 70,
+      "mismatched": 0,
+      "skipped": 644
+    },
+    {
+      "sheet": "正确性检查-直保长险_CHK DIFF",
+      "compared": 140,
+      "matched": 140,
+      "mismatched": 0,
+      "skipped": 1290
+    },
+    {
+      "sheet": "1. 保险服务业绩",
+      "compared": 50,
+      "matched": 50,
+      "mismatched": 0,
+      "skipped": 258
+    },
+    {
+      "sheet": "1.1 保险服务收入",
+      "compared": 56,
+      "matched": 56,
+      "mismatched": 0,
+      "skipped": 208
+    },
+    {
+      "sheet": "1.2 CSM",
+      "compared": 137,
+      "matched": 137,
+      "mismatched": 0,
+      "skipped": 1843
+    },
+    {
+      "sheet": "1.3 RA",
+      "compared": 24,
+      "matched": 24,
+      "mismatched": 0,
+      "skipped": 372
+    },
+    {
+      "sheet": "1.4 首日亏损",
+      "compared": 22,
+      "matched": 22,
+      "mismatched": 0,
+      "skipped": 858
+    },
+    {
+      "sheet": "1.5 投成拆分",
+      "compared": 38,
+      "matched": 38,
+      "mismatched": 0,
+      "skipped": 468
+    },
+    {
+      "sheet": "1.6 损失摊销",
+      "compared": 48,
+      "matched": 48,
+      "mismatched": 0,
+      "skipped": 458
+    },
+    {
+      "sheet": "1.7 获取费用摊销",
+      "compared": 39,
+      "matched": 39,
+      "mismatched": 0,
+      "skipped": 467
+    },
+    {
+      "sheet": "1.8 保险成分预实偏差",
+      "compared": 21,
+      "matched": 21,
+      "mismatched": 0,
+      "skipped": 155
+    },
+    {
+      "sheet": "2. 投资服务业绩",
+      "compared": 20,
+      "matched": 20,
+      "mismatched": 0,
+      "skipped": 178
+    },
+    {
+      "sheet": "2.0 IFIE细项拆分",
+      "compared": 273,
+      "matched": 273,
+      "mismatched": 0,
+      "skipped": 2527
+    },
+    {
+      "sheet": "2.1 保险金融负债成本",
+      "compared": 103,
+      "matched": 103,
+      "mismatched": 0,
+      "skipped": 1337
+    },
+    {
+      "sheet": "现行vsI17_利源分析",
+      "compared": 95,
+      "matched": 95,
+      "mismatched": 0,
+      "skipped": 1501
+    }
+  ],
+  "mismatches": []
+}
