@@ -2428,6 +2428,402 @@ function DashboardSection({ step, title, subtitle }: { step: string; title: stri
   )
 }
 
+const demoRegionDistribution = [
+  { name: '上海分', province: '上海市', amount: 564, share: 0.508, note: 'Demo 分支机构经营结果' },
+  { name: '江苏分', province: '江苏省', amount: 545, share: 0.492, note: 'Demo 分支机构经营结果' },
+  { name: '广东分', province: '广东省', amount: 318, share: 0.286, note: 'Demo 补充机构' },
+  { name: '北京分', province: '北京市', amount: 266, share: 0.239, note: 'Demo 补充机构' },
+  { name: '四川分', province: '四川省', amount: 221, share: 0.199, note: 'Demo 补充机构' },
+]
+
+type DemoChinaFeature = {
+  properties?: {
+    name?: string
+    adcode?: number
+    center?: [number, number]
+    centroid?: [number, number]
+    [key: string]: unknown
+  }
+  geometry?: {
+    type?: string
+    coordinates?: unknown
+  }
+  type?: string
+}
+
+type DemoChinaGeoJson = {
+  type: string
+  features: DemoChinaFeature[]
+}
+
+const chinaMapBounds = {
+  minLon: 73,
+  maxLon: 136,
+  minLat: 17,
+  maxLat: 54,
+}
+
+const provinceFallbackCenters: Record<string, [number, number]> = {
+  上海市: [121.47, 31.23],
+  江苏省: [118.78, 32.06],
+  广东省: [113.27, 23.13],
+  北京市: [116.4, 39.9],
+  四川省: [104.06, 30.67],
+}
+
+function chinaPoint(point: number[]): [number, number] {
+  const [lon, lat] = point
+  const x = 24 + ((lon - chinaMapBounds.minLon) / (chinaMapBounds.maxLon - chinaMapBounds.minLon)) * 364
+  const y = 326 - ((lat - chinaMapBounds.minLat) / (chinaMapBounds.maxLat - chinaMapBounds.minLat)) * 304
+  return [x, y]
+}
+
+function ringToPath(ring: unknown) {
+  if (!Array.isArray(ring)) return ''
+  const commands = ring
+    .map((point, index) => {
+      if (!Array.isArray(point) || point.length < 2) return ''
+      const [x, y] = chinaPoint([Number(point[0]), Number(point[1])])
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`
+    })
+    .filter(Boolean)
+  return commands.length ? `${commands.join(' ')} Z` : ''
+}
+
+function featureToPath(feature: DemoChinaFeature) {
+  const geometry = feature.geometry
+  const coordinates = geometry?.coordinates
+  if (!Array.isArray(coordinates)) return ''
+  if (geometry?.type === 'Polygon') {
+    return coordinates.map((ring) => ringToPath(ring)).filter(Boolean).join(' ')
+  }
+  if (geometry?.type === 'MultiPolygon') {
+    return coordinates
+      .flatMap((polygon) => (Array.isArray(polygon) ? polygon.map((ring) => ringToPath(ring)) : []))
+      .filter(Boolean)
+      .join(' ')
+  }
+  return ''
+}
+
+function provinceMarkerPoint(feature: DemoChinaFeature, provinceName: string): [number, number] {
+  const center = feature.properties?.centroid || feature.properties?.center || provinceFallbackCenters[provinceName]
+  if (center) return chinaPoint(center)
+  const geometry = feature.geometry
+  const coordinates = geometry?.coordinates
+  const firstRing =
+    geometry?.type === 'Polygon' && Array.isArray(coordinates)
+      ? coordinates[0]
+      : geometry?.type === 'MultiPolygon' && Array.isArray(coordinates) && Array.isArray(coordinates[0])
+        ? coordinates[0][0]
+        : null
+  if (!Array.isArray(firstRing) || firstRing.length === 0) return [210, 172]
+  const points = firstRing.filter((point): point is number[] => Array.isArray(point) && point.length >= 2)
+  const lon = points.reduce((sum, point) => sum + Number(point[0]), 0) / points.length
+  const lat = points.reduce((sum, point) => sum + Number(point[1]), 0) / points.length
+  return chinaPoint([lon, lat])
+}
+
+function RegionalChinaDemoMap() {
+  const [mapData, setMapData] = useState<DemoChinaGeoJson | null>(null)
+  const total = demoRegionDistribution.reduce((sum, row) => sum + row.amount, 0)
+  const regionByProvince = new Map(demoRegionDistribution.map((row) => [row.province, row]))
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(publicAssetPath('data/china-provinces-demo.geojson'))
+      .then((response) => response.json())
+      .then((payload: DemoChinaGeoJson) => {
+        if (!cancelled) setMapData(payload)
+      })
+      .catch(() => {
+        if (!cancelled) setMapData(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <div className="regional-map-module">
+      <div className="demo-module-note">
+        <b>Demo / 示例数据</b>
+        <span>当前未接入正式地区 / 分支机构数据，以下金额为演示用假数。</span>
+      </div>
+      <div className="regional-map-layout">
+        <svg className="china-demo-map" viewBox="0 0 410 360" role="img" aria-label="中国地图示例经营分布">
+          {mapData?.features.map((feature) => {
+            const provinceName = String(feature.properties?.name || '')
+            const region = regionByProvince.get(provinceName)
+            const d = featureToPath(feature)
+            return (
+              <path
+                key={provinceName || d}
+                className={`china-province${region ? ' has-demo-data' : ''}`}
+                d={d}
+              >
+                <title>
+                  {region
+                    ? `${region.name}（${provinceName}）：${amountFormatter.format(region.amount)} 百万元，占比 ${percentFormatter.format(region.share)}。${region.note}`
+                    : `${provinceName}：暂无正式区域数据，当前为示例底图。`}
+                </title>
+              </path>
+            )
+          })}
+          {mapData?.features.map((feature, index) => {
+            const provinceName = String(feature.properties?.name || '')
+            const region = regionByProvince.get(provinceName)
+            if (!region) return null
+            const [x, y] = provinceMarkerPoint(feature, provinceName)
+            const radius = Math.max(5, Math.min(10, 4 + region.amount / 150))
+            const showCallout = index < 2
+            return (
+              <g key={`${region.name}-marker`} className="region-bubble">
+                <circle cx={x} cy={y} r={radius} fill={chartPalette[index % chartPalette.length]}>
+                  <title>{`${region.name}：${amountFormatter.format(region.amount)} 百万元，占比 ${percentFormatter.format(region.share)}。${region.note}`}</title>
+                </circle>
+                {showCallout ? (
+                  <>
+                    <rect className="region-bubble-callout" x={x + radius + 8} y={y - 26} width="82" height="46" rx="8" />
+                    <text x={x + radius + 18} y={y - 8}>{region.name}</text>
+                    <text className="region-bubble-value" x={x + radius + 18} y={y + 10}>
+                      +{amountFormatter.format(region.amount)}
+                    </text>
+                  </>
+                ) : null}
+              </g>
+            )
+          })}
+        </svg>
+        <div className="regional-map-list">
+          {demoRegionDistribution.map((region, index) => (
+            <div key={region.name} className="regional-map-row">
+              <span className="legend-dot" style={{ background: chartPalette[index % chartPalette.length] }} />
+              <strong>{region.name}</strong>
+              <b>{amountFormatter.format(region.amount)} 百万元</b>
+              <em>{percentFormatter.format(region.amount / total)}</em>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type DriverTreeNode = {
+  id: string
+  label: string
+  value: number
+  note: string
+  children?: DriverTreeNode[]
+}
+
+function metricOrDemo(sheet: SheetSnapshot | undefined, labels: string[], filters: FilterState, demoValue: number) {
+  const value = resultValue(sheet, labels, filters)
+  return Number.isFinite(value) && value !== 0 ? value : demoValue
+}
+
+function buildDriverTreeData(
+  profitSheet: SheetSnapshot | undefined,
+  csmSheet: SheetSnapshot | undefined,
+  ifieSheet: SheetSnapshot | undefined,
+  filters: FilterState,
+): DriverTreeNode {
+  const insuranceRevenue = metricOrDemo(profitSheet, ['保险服务收入合计', '保险服务收入'], filters, 122210)
+  const insuranceExpense = metricOrDemo(profitSheet, ['保险服务费用合计', '保险服务费用'], filters, -86960)
+  const insuranceService = metricOrDemo(profitSheet, ['保险服务业绩合计', '保险服务业绩'], filters, 35250)
+  const investmentIncome = metricOrDemo(profitSheet, ['投资收益'], filters, 217720)
+  const ifie = metricOrDemo(profitSheet, ['保险金融负债成本', '计入损益的保险合同金融变动额'], filters, -104570)
+  const investmentService = metricOrDemo(profitSheet, ['投资服务业绩合计', '投资服务业绩'], filters, 113150)
+  const csmClosing = metricOrDemo(csmSheet, ['期末', 'CSM余额', 'CSM 余额'], filters, 576910)
+  const csmRelease = metricOrDemo(profitSheet, ['合同服务边际摊销'], filters, 32980)
+  const raRelease = metricOrDemo(profitSheet, ['预期风险调整释放'], filters, 2020)
+  const expectedClaims = metricOrDemo(profitSheet, ['预期赔付的保险成分'], filters, 10880)
+  const expectedExpenses = metricOrDemo(profitSheet, ['预期保险服务费用'], filters, 38760)
+  const lossAmortization = metricOrDemo(profitSheet, ['损失摊销', '亏损合同损失及损失的转回'], filters, 1410)
+  const acquisitionAmortization = metricOrDemo(profitSheet, ['获取费用摊销'], filters, -1200)
+  const paaRevenue = metricOrDemo(profitSheet, ['按保费分配法计量的合同确认的保费收入', '保费分配法保费收入'], filters, 48880)
+  const belCost = metricOrDemo(ifieSheet, ['BEL计息成本'], filters, -61830)
+  const uiCost = metricOrDemo(ifieSheet, ['UI投资收益成本'], filters, -26140)
+  const csmInterest = metricOrDemo(ifieSheet, ['CSM计息成本'], filters, -12730)
+  const pretaxProfit = insuranceService + investmentService
+
+  return {
+    id: 'root',
+    label: '税前利润 / 利润主线',
+    value: pretaxProfit,
+    note: 'Demo 结构：从利润向保险服务业绩、投资服务业绩、CSM 与 IFIE 逐层展开。',
+    children: [
+      {
+        id: 'insurance-service',
+        label: '保险服务业绩',
+        value: insuranceService,
+        note: '保险服务收入减保险服务费用后的经营结果。',
+        children: [
+          {
+            id: 'insurance-revenue',
+            label: '保险服务收入',
+            value: insuranceRevenue,
+            note: '收入端 driver 组合。',
+            children: [
+              { id: 'csm-release', label: '合同服务边际摊销', value: csmRelease, note: 'CSM 按服务释放进入收入。' },
+              { id: 'ra-release', label: '预期风险调整释放', value: raRelease, note: 'RA 释放形成收入贡献。' },
+              { id: 'expected-claims', label: '预期赔付的保险成分', value: expectedClaims, note: '预期赔付中的保险成分。' },
+              { id: 'expected-expenses', label: '预期保险服务费用', value: expectedExpenses, note: '预期维持费用等服务费用释放。' },
+              { id: 'loss-amortization', label: '损失摊销', value: lossAmortization, note: '亏损部分后续摊销或转回。' },
+              { id: 'acquisition-amortization', label: '获取费用摊销', value: acquisitionAmortization, note: '保险获取现金流摊销。' },
+              { id: 'paa-revenue', label: '保费分配法保费收入', value: paaRevenue, note: 'PAA 短险收入贡献。' },
+            ],
+          },
+          { id: 'insurance-expense', label: '保险服务费用', value: insuranceExpense, note: '实际赔付、实际费用、损失等费用端影响。' },
+        ],
+      },
+      {
+        id: 'investment-service',
+        label: '投资服务业绩',
+        value: investmentService,
+        note: '投资收益扣除保险金融负债成本后的结果。',
+        children: [
+          { id: 'investment-income', label: '投资收益', value: investmentIncome, note: '资产端投资收益贡献。' },
+          {
+            id: 'ifie',
+            label: '保险金融负债成本',
+            value: ifie,
+            note: 'IFIE 相关负债成本。',
+            children: [
+              { id: 'bel-cost', label: 'BEL计息成本', value: belCost, note: '最佳估计负债计息影响。' },
+              { id: 'ui-cost', label: 'UI投资收益成本', value: uiCost, note: 'UI / 投资成分相关金融成本。' },
+              { id: 'csm-interest', label: 'CSM计息成本', value: csmInterest, note: '合同服务边际计息影响。' },
+            ],
+          },
+        ],
+      },
+      { id: 'csm', label: 'CSM', value: csmClosing, note: '期末 CSM 储备，解释未来利润释放基础。' },
+    ],
+  }
+}
+
+function flattenDriverTree(
+  node: DriverTreeNode,
+  collapsed: Set<string>,
+  depth = 0,
+  parentId = '',
+): Array<{ node: DriverTreeNode; depth: number; parentId: string; hasChildren: boolean; collapsed: boolean }> {
+  const hasChildren = Boolean(node.children?.length)
+  const isCollapsed = collapsed.has(node.id)
+  const current = [{ node, depth, parentId, hasChildren, collapsed: isCollapsed }]
+  if (!hasChildren || isCollapsed) return current
+  return current.concat(node.children!.flatMap((child) => flattenDriverTree(child, collapsed, depth + 1, node.id)))
+}
+
+function findDriverNode(node: DriverTreeNode, id: string): DriverTreeNode {
+  if (node.id === id) return node
+  for (const child of node.children || []) {
+    const result = findDriverNode(child, id)
+    if (result.id === id) return result
+  }
+  return node
+}
+
+function DriverTreeDemo({
+  profitSheet,
+  csmSheet,
+  ifieSheet,
+  filters,
+}: {
+  profitSheet: SheetSnapshot | undefined
+  csmSheet: SheetSnapshot | undefined
+  ifieSheet: SheetSnapshot | undefined
+  filters: FilterState
+}) {
+  const tree = buildDriverTreeData(profitSheet, csmSheet, ifieSheet, filters)
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['insurance-revenue', 'ifie']))
+  const [selectedId, setSelectedId] = useState(tree.id)
+  const rows = flattenDriverTree(tree, collapsed)
+  const selectedNode = findDriverNode(tree, selectedId)
+  const visibleNodes = rows.map((row, index) => ({
+    ...row,
+    x: 48 + row.depth * 144,
+    y: 30 + index * 29,
+  }))
+  const visibleNodeById = new Map(visibleNodes.map((row) => [row.node.id, row]))
+  const treeWidth = 680
+  const treeHeight = Math.max(220, visibleNodes.length * 29 + 44)
+
+  const toggle = (node: DriverTreeNode) => {
+    if (!node.children?.length) return
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (next.has(node.id)) next.delete(node.id)
+      else next.add(node.id)
+      return next
+    })
+  }
+
+  return (
+    <div className="driver-tree-module">
+      <div className="demo-module-note">
+        <b>Demo / 示例结构</b>
+        <span>当前展示 IFRS17 driver 展开逻辑；正式 driver 数据源接入后可替换为客户真实下钻口径。</span>
+      </div>
+      <div className="driver-tree-layout">
+        <div className="driver-tree-canvas-wrap">
+          <svg className="driver-tree-canvas" viewBox={`0 0 ${treeWidth} ${treeHeight}`} role="img" aria-label="IFRS17 Driver Tree Demo">
+            {visibleNodes
+              .filter((row) => row.parentId)
+              .map((row) => {
+                const parent = visibleNodeById.get(row.parentId)
+                if (!parent) return null
+                const startX = parent.x + 12
+                const endX = row.x - 12
+                const midX = (startX + endX) / 2
+                return (
+                  <path
+                    key={`${row.parentId}-${row.node.id}`}
+                    className={row.node.value >= 0 ? 'driver-tree-link positive' : 'driver-tree-link negative'}
+                    d={`M ${startX} ${parent.y} C ${midX} ${parent.y}, ${midX} ${row.y}, ${endX} ${row.y}`}
+                  />
+                )
+              })}
+            {visibleNodes.map(({ node, x, y, hasChildren, collapsed: isCollapsed }) => {
+              const isSelected = selectedId === node.id
+              return (
+                <g
+                  key={node.id}
+                  className={`driver-tree-node${isSelected ? ' selected' : ''}${node.value < 0 ? ' negative' : ' positive'}`}
+                  transform={`translate(${x} ${y})`}
+                  onClick={() => setSelectedId(node.id)}
+                  onDoubleClick={() => toggle(node)}
+                >
+                  <circle r={10}>
+                    <title>{`${node.label}：${formatTooltipAmount(node.value)}。${node.note}`}</title>
+                  </circle>
+                  {hasChildren ? (
+                    <text className="driver-tree-node-toggle" x={0} y={4} textAnchor="middle" onClick={(event) => {
+                      event.stopPropagation()
+                      toggle(node)
+                    }}>
+                      {isCollapsed ? '+' : '-'}
+                    </text>
+                  ) : null}
+                  <text className="driver-tree-node-label" x={16} y={-5}>{node.label}</text>
+                  <text className="driver-tree-node-value" x={16} y={13}>{formatTooltipAmount(node.value)}</text>
+                </g>
+              )
+            })}
+          </svg>
+        </div>
+        <aside className="driver-tree-detail">
+          <span className="driver-tree-chip">点击查看说明，双击节点折叠/展开</span>
+          <h4>{selectedNode.label}</h4>
+          <strong className={selectedNode.value < 0 ? 'negative-cell' : ''}>{formatTooltipAmount(selectedNode.value)}</strong>
+          <p>{selectedNode.note}</p>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
 function labelGeometry(props: any) {
   const viewBox = props.viewBox || {}
   const numberOr = (value: unknown, fallback = 0) => {
@@ -2794,6 +3190,20 @@ function ManagementDashboard({
           <div className="filter-context">当前筛选：{filterLabel}</div>
         </div>
       </section>
+
+      <DashboardSection
+        step="00"
+        title="Demo 增强分析视图"
+        subtitle="并入旧版本中的中国地图和 Driver Tree；当前以示例数据/示例结构先跑通展示效果。"
+      />
+
+      <DashboardCard
+        title="中国地图：地区经营结果分布"
+        subtitle="Demo / 示例数据：展示地区与分支机构维度的经营结果分布，正式区域数据源接入后替换。"
+        className="dashboard-card--wide"
+      >
+        <RegionalChinaDemoMap />
+      </DashboardCard>
 
       <DashboardSection
         step="01"
@@ -3279,6 +3689,14 @@ function ManagementDashboard({
         title="利源差异"
         subtitle="最后回到准则切换下的税前营业利润变动，支撑汇报结论。"
       />
+
+      <DashboardCard
+        title="IFRS17 Driver Tree"
+        subtitle="Demo / 示例结构：放在 2.1 后、Level 3 利源前，用于展示利润、保险服务业绩、投资服务业绩、CSM、IFIE 的层层展开。"
+        className="dashboard-card--wide"
+      >
+        <DriverTreeDemo profitSheet={profitSheet} csmSheet={csmSheet} ifieSheet={ifieSheet} filters={filters} />
+      </DashboardCard>
 
       <DashboardCard
         title="现行 vs IFRS17 税前营业利润差异"
