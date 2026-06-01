@@ -3192,20 +3192,6 @@ function ManagementDashboard({
       </section>
 
       <DashboardSection
-        step="00"
-        title="Demo 增强分析视图"
-        subtitle="并入旧版本中的中国地图和 Driver Tree；当前以示例数据/示例结构先跑通展示效果。"
-      />
-
-      <DashboardCard
-        title="中国地图：地区经营结果分布"
-        subtitle="Demo / 示例数据：展示地区与分支机构维度的经营结果分布，正式区域数据源接入后替换。"
-        className="dashboard-card--wide"
-      >
-        <RegionalChinaDemoMap />
-      </DashboardCard>
-
-      <DashboardSection
         step="01"
         title="利润总览"
         subtitle="先看利润表主线，再向保险服务收入、保险费用和投资服务展开。"
@@ -3429,6 +3415,14 @@ function ManagementDashboard({
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </DashboardCard>
+
+      <DashboardCard
+        title="中国地图：地区经营结果分布"
+        subtitle="Demo / 示例数据：放在保险服务业绩章节末尾，展示地区与分支机构维度的经营结果分布。"
+        className="dashboard-card--wide"
+      >
+        <RegionalChinaDemoMap />
       </DashboardCard>
 
       <DashboardSection
