@@ -1825,45 +1825,47 @@ function buildCurrentPeriodRollForwardTable(sheet: SheetSnapshot, query: string)
   return [block].map((table) => filterStructuredRows(table, query)).filter((table): table is StructuredTableBlock => Boolean(table))
 }
 
-function trimStructuredBlock(
-  sheet: SheetSnapshot,
-  id: string,
-  title: string,
-  startRow: number,
-  endRow: number,
-  startCol: number,
-  endCol: number,
-  query: string,
-  subtitle?: string,
-  amountUnit: StructuredTableBlock['amountUnit'] = 'wan',
-) {
-  const rawRows = sheet.cells
-    .slice(startRow, endRow + 1)
-    .map((row) => Array.from({ length: endCol - startCol + 1 }, (_unused, offset) => displayCellText(row[startCol + offset])))
-    .filter(rowHasContent)
-  if (!rawRows.length) return undefined
-
-  const usedCols = rawRows[0].map((_cell, index) => index).filter((index) => rawRows.some((row) => displayCellText({ display: row[index] } as CellSnapshot)))
-  const rows = rawRows.map((row) => usedCols.map((col) => row[col]))
-  const headers = rows[0]
-  const body = rows.slice(1).filter(rowHasContent)
-  if (!body.length) return undefined
-  return filterStructuredRows({ id, title, subtitle, headers: headers.map(normalizeCurrentPeriodLabel), rows: body, amountUnit }, query)
-}
-
 function buildIfieCostTables(sheet: SheetSnapshot, query: string): StructuredTableBlock[] {
-  const definitions: Array<[string, string, number, number, number, number, string?, StructuredTableBlock['amountUnit']?]> = [
-    ['ifie-summary', '保险金融负债成本(IFIE)', 1, 9, 2, 12, '按公司及主要账户展示当期IFIE构成。', 'wan'],
-    ['ifie-rate', '1. 负债计息率', 43, 62, 2, 8, '传统、分红、万能账户的计息率及相关拆分。', 'auto'],
-    ['ifie-tvog', '2. TVOG', 65, 68, 2, 5, '万能及分红账户的TVOG期初、期末和变动。', 'yuan'],
-    ['ifie-oci', '4. OCI', 72, 74, 2, 7, '计入其他综合收益的主要驱动。', 'yuan'],
-    ['ifie-detail', 'IFIE细项拆分', 80, 94, 0, 5, '按层级展示计入损益的保险合同金融变动额明细。', 'wan'],
-  ]
-  return definitions
-    .map(([id, title, startRow, endRow, startCol, endCol, subtitle, amountUnit]) =>
-      trimStructuredBlock(sheet, id, title, startRow, endRow, startCol, endCol, query, subtitle, amountUnit),
-    )
-    .filter((table): table is StructuredTableBlock => Boolean(table))
+  const accountRowIndex = sheet.cells.findIndex((row) => row.some((cell) => compactText(displayCellText(cell)) === '保险金融负债成本(IFIE)'))
+  const accountRow = sheet.cells[accountRowIndex]
+  const periodRow = sheet.cells[accountRowIndex + 1]
+  if (!accountRow || !periodRow) return []
+
+  const currentPeriod = periodRow.map(displayCellText).find((period) => /^\d{6,8}$/.test(compactText(period))) || ''
+  const valueColumns = accountRow
+    .map((cell, colIndex) => ({
+      account: displayCellText(cell),
+      colIndex,
+      period: displayCellText(periodRow[colIndex]),
+    }))
+    .filter((column) => column.account && column.period === currentPeriod)
+
+  if (!valueColumns.length) return []
+
+  const rows: string[][] = []
+  for (let rowIndex = accountRowIndex + 2; rowIndex < sheet.cells.length; rowIndex += 1) {
+    const sourceRow = sheet.cells[rowIndex]
+    const sectionLabel = compactText(displayCellText(sourceRow?.[0]))
+    if (sectionLabel.includes('OCI相关指标')) break
+    const label = displayCellText(sourceRow?.[2]).replace(/\s+/g, '')
+    if (!label) continue
+    const row = [label, ...valueColumns.map((column) => displayCellText(sourceRow?.[column.colIndex]))]
+    if (rowHasContent(row)) rows.push(row)
+    if (compactText(label) === '保险金融负债成本') break
+  }
+
+  if (!rows.length) return []
+
+  const block: StructuredTableBlock = {
+    id: 'ifie-summary-current',
+    title: '保险金融负债成本(IFIE)',
+    subtitle: `${currentPeriod}，按原表口径仅展示当期列；黄线及以下表格不展示。`,
+    headers: ['项目', ...valueColumns.map((column) => column.account)],
+    rows,
+    amountUnit: 'none',
+  }
+
+  return [block].map((table) => filterStructuredRows(table, query)).filter((table): table is StructuredTableBlock => Boolean(table))
 }
 
 function buildSourceOfEarningsTable(sheet: SheetSnapshot, query: string): StructuredTableBlock[] {
