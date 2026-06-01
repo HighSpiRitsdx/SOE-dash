@@ -1576,7 +1576,12 @@
   position: relative;
   padding: 28px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-areas:
+    "copy metrics"
+    "visual visual"
+    "comment comment"
+    "edit edit";
   gap: 18px;
   break-inside: avoid;
   background: #ffffff;
@@ -1593,6 +1598,7 @@
 }
 
 .report-page-copy {
+  grid-area: copy;
   padding-top: 6px;
 }
 
@@ -1609,6 +1615,27 @@
   margin-top: 18px;
 }
 
+.report-metrics {
+  grid-area: metrics;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  margin-top: 0;
+}
+
+.report-metrics div {
+  padding: 8px;
+}
+
+.report-metrics small,
+.report-metrics span {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.report-metrics strong {
+  font-size: 15px;
+}
+
 .metric-strip div {
   border: 1px solid #d6d9df;
   border-radius: 8px;
@@ -1623,6 +1650,7 @@
 }
 
 .report-visual {
+  grid-area: visual;
   border: 1px solid #dce5f2;
   border-radius: 8px;
   padding: 10px;
@@ -1645,6 +1673,10 @@
 .report-comment,
 .comment-box {
   grid-column: 1 / -1;
+}
+
+.comment-box {
+  grid-area: edit;
 }
 
 .report-table-preview {
@@ -1736,6 +1768,7 @@
 }
 
 .report-comment {
+  grid-area: comment;
   border-left: 4px solid #1e49e2;
   border-radius: 8px;
   background: #f7faff;
@@ -1839,9 +1872,13 @@
   width: 1120px;
   min-height: 760px;
   box-sizing: border-box;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  grid-template-rows: auto 1fr;
-  gap: 34px 28px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-areas:
+    "copy metrics"
+    "visual visual"
+    "comment comment";
+  grid-template-rows: auto auto 1fr;
+  gap: 24px 28px;
   padding: 44px 34px 32px;
   margin: 0;
   border: 0;
@@ -1852,12 +1889,11 @@
 }
 
 .app-shell.report-clean .report-visual {
-  height: 278px;
+  height: 380px;
   box-sizing: border-box;
 }
 
 .app-shell.report-clean .report-comment {
-  grid-column: 1 / -1;
   align-self: start;
 }
 
@@ -1877,6 +1913,19 @@
   .dashboard-grid,
   .dashboard-hero {
     grid-template-columns: 1fr;
+  }
+
+  .report-page {
+    grid-template-areas:
+      "copy"
+      "metrics"
+      "visual"
+      "comment"
+      "edit";
+  }
+
+  .report-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .kpi-grid {
@@ -1949,9 +1998,13 @@
 
   .report-page {
     display: grid;
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    grid-template-rows: auto 1fr;
-    gap: 10mm 8mm;
+    grid-template-columns: minmax(0, 1fr) 74mm;
+    grid-template-areas:
+      "copy metrics"
+      "visual visual"
+      "comment comment";
+    grid-template-rows: auto auto 1fr;
+    gap: 7mm 7mm;
     width: 100% !important;
     max-width: 100% !important;
     min-height: 185mm;
@@ -1999,9 +2052,13 @@
   }
 
   .metric-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 7px;
-    margin-top: 14px;
+    margin-top: 0;
+  }
+
+  .report-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
   }
 
   .metric-strip div {
@@ -2016,7 +2073,7 @@
   .report-visual {
     min-width: 0;
     max-width: 100%;
-    height: 72mm;
+    height: 100mm;
     padding: 5mm;
     box-sizing: border-box;
     overflow: hidden !important;
@@ -2051,7 +2108,6 @@
   }
 
   .report-comment {
-    grid-column: 1 / -1;
     align-self: start;
     border-radius: 0;
     padding: 10px 14px;

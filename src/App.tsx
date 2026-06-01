@@ -2158,6 +2158,9 @@ type ReportVisualContext = {
   metricRows: Array<{ name: string; value: number }>
 }
 
+const reportChartHeight = 320
+const reportWaterfallHeight = 340
+
 function buildReportVisualContext(section: ReportSection, sheetMap: Map<string, SheetSnapshot>, filters: FilterState): ReportVisualContext {
   const profitSheet = sheetMap.get('I17利润表')
   const insuranceServiceSheet = sheetMap.get('1. 保险服务业绩')
@@ -2256,10 +2259,10 @@ function ReportVisual({ context }: { context: ReportVisualContext }) {
 
   if (context.kind === 'percent-bar') {
     return (
-      <ResponsiveContainer width="100%" height={270}>
-        <BarChart data={context.rows} margin={{ top: 24, right: 12, bottom: 48, left: 8 }}>
+      <ResponsiveContainer width="100%" height={reportChartHeight}>
+        <BarChart data={context.rows} margin={{ top: 28, right: 18, bottom: 66, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={kpmgColor.grid} />
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-18} textAnchor="end" />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-22} textAnchor="end" height={70} />
           <YAxis tick={{ fontSize: 11 }} width={76} tickFormatter={(value) => percentFormatter.format(Number(value))} />
           <Tooltip
             formatter={(_value, _name, item) => {
@@ -2280,10 +2283,10 @@ function ReportVisual({ context }: { context: ReportVisualContext }) {
 
   if (context.kind === 'waterfall') {
     return (
-      <ResponsiveContainer width="100%" height={290}>
-        <BarChart data={context.rows} margin={{ top: 24, right: 12, bottom: 58, left: 8 }}>
+      <ResponsiveContainer width="100%" height={reportWaterfallHeight}>
+        <BarChart data={context.rows} margin={{ top: 30, right: 22, bottom: 86, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={kpmgColor.grid} />
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-22} textAnchor="end" height={72} />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-28} textAnchor="end" height={92} />
           <YAxis tick={{ fontSize: 11 }} width={76} tickFormatter={formatChartAmount} />
           <Tooltip
             formatter={(_value, _name, item) => {
@@ -2303,10 +2306,10 @@ function ReportVisual({ context }: { context: ReportVisualContext }) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={270}>
-      <BarChart data={context.rows} margin={{ top: 24, right: 12, bottom: 48, left: 8 }}>
+    <ResponsiveContainer width="100%" height={reportChartHeight}>
+      <BarChart data={context.rows} margin={{ top: 28, right: 18, bottom: 66, left: 8 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={kpmgColor.grid} />
-        <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-18} textAnchor="end" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-22} textAnchor="end" height={70} />
         <YAxis tick={{ fontSize: 11 }} width={76} tickFormatter={formatChartAmount} />
         <Tooltip formatter={formatTooltipAmount} />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -2345,18 +2348,18 @@ function ReportPage({
         <span className="eyebrow">Management Report</span>
         <h2>{section.title}</h2>
         <p>{section.question}</p>
-        {metricRows.length > 0 ? (
-          <div className="metric-strip">
-            {metricRows.map((row) => (
-              <div key={row.name}>
-                <small>{row.name}</small>
-                <strong>{formatWanAmount(row.value)}</strong>
-                <span>单位：百万元</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
+      {metricRows.length > 0 ? (
+        <div className="metric-strip report-metrics">
+          {metricRows.map((row) => (
+            <div key={row.name}>
+              <small>{row.name}</small>
+              <strong>{formatWanAmount(row.value)}</strong>
+              <span>单位：百万元</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="report-visual">
         <ReportVisual context={visualContext} />
       </div>
