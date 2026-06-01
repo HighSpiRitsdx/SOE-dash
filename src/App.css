@@ -790,14 +790,14 @@
   border: 1px solid #d9e2ec;
   border-radius: 8px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  height: 260px;
+  height: 500px;
   overflow: auto;
 }
 
 .driver-tree-canvas {
   width: 100%;
-  min-width: 680px;
-  height: 260px;
+  min-width: 820px;
+  min-height: 460px;
 }
 
 .driver-tree-link {

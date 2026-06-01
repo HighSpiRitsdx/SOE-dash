@@ -1544,6 +1544,12 @@ function tableRowValueByLabel(sheet: SheetSnapshot | undefined, rowLabel: string
   return displayCellText(row?.[colIndex])
 }
 
+function isPeriodLikeNumberCell(cell: CellSnapshot | undefined) {
+  if (typeof cell?.value !== 'number' || !Number.isInteger(cell.value)) return false
+  const text = compactText(displayCellText(cell))
+  return /^\d{4,8}$/.test(text) && cell.value >= 1900
+}
+
 function buildProfitBreakdownTables(sheet: SheetSnapshot, query: string): StructuredTableBlock[] {
   const headers = ['项目', '公司', '传统', '分红1', '分红2', '万能', '投连', 'I17-CGAAP']
   const cols = [0, 5, 6, 7, 8, 9, 10, 11]
@@ -1613,15 +1619,23 @@ function buildInsuranceRevenueTables(sheet: SheetSnapshot, query: string, sheetM
     '保费分配法保费收入',
   ]
   const cols = [3, 5, 7, 9, 11]
+  const findCurrentPeriodRow = (label: string) => {
+    const normalized = compactText(label)
+    return sheet.cells.find((candidate) => {
+      if (!compactText(displayCellText(candidate[2])).includes(normalized)) return false
+      if (isPeriodLikeNumberCell(candidate[3])) return false
+      return cols.some((col) => parseDisplayNumber(displayCellText(candidate[col])).number !== undefined)
+    })
+  }
   const rows = sourceRows.map((label) => {
-    const row = sheet.cells.find((candidate) => compactText(displayCellText(candidate[2])).includes(compactText(label)))
+    const row = findCurrentPeriodRow(label)
     const values = cols.map((col) => displayCellText(row?.[col]))
     const linkedValue = tableRowValueByLabel(profitSplitSheet, label, 10)
     const ppaShortTerm = label === '保费分配法保费收入' ? displayCellText(row?.[3]) : ''
     return [label, ...values, linkedValue || '', ppaShortTerm]
   })
 
-  const total = sheet.cells.find((candidate) => compactText(displayCellText(candidate[2])).includes('保险服务收入合计'))
+  const total = findCurrentPeriodRow('保险服务收入合计')
   if (total) {
     const values = cols.map((col) => displayCellText(total[col]))
     const unitLinked = rows.reduce((sum, row) => sum + (parseDisplayNumber(row[6]).number || 0), 0)
@@ -2740,18 +2754,18 @@ function DriverTreeDemo({
   filters: FilterState
 }) {
   const tree = buildDriverTreeData(profitSheet, csmSheet, ifieSheet, filters)
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['insurance-revenue', 'ifie']))
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['ifie']))
   const [selectedId, setSelectedId] = useState(tree.id)
   const rows = flattenDriverTree(tree, collapsed)
   const selectedNode = findDriverNode(tree, selectedId)
   const visibleNodes = rows.map((row, index) => ({
     ...row,
-    x: 48 + row.depth * 144,
-    y: 30 + index * 29,
+    x: 54 + row.depth * 162,
+    y: 38 + index * 36,
   }))
   const visibleNodeById = new Map(visibleNodes.map((row) => [row.node.id, row]))
-  const treeWidth = 680
-  const treeHeight = Math.max(220, visibleNodes.length * 29 + 44)
+  const treeWidth = 820
+  const treeHeight = Math.max(460, visibleNodes.length * 36 + 72)
 
   const toggle = (node: DriverTreeNode) => {
     if (!node.children?.length) return
@@ -2771,7 +2785,7 @@ function DriverTreeDemo({
       </div>
       <div className="driver-tree-layout">
         <div className="driver-tree-canvas-wrap">
-          <svg className="driver-tree-canvas" viewBox={`0 0 ${treeWidth} ${treeHeight}`} role="img" aria-label="IFRS17 Driver Tree Demo">
+          <svg className="driver-tree-canvas" style={{ height: treeHeight }} viewBox={`0 0 ${treeWidth} ${treeHeight}`} role="img" aria-label="IFRS17 Driver Tree Demo">
             {visibleNodes
               .filter((row) => row.parentId)
               .map((row) => {
@@ -3688,14 +3702,6 @@ function ManagementDashboard({
       />
 
       <DashboardCard
-        title="IFRS17 Driver Tree"
-        subtitle="Demo / 示例结构：放在 2.1 后、Level 3 利源前，用于展示利润、保险服务业绩、投资服务业绩、CSM、IFIE 的层层展开。"
-        className="dashboard-card--wide"
-      >
-        <DriverTreeDemo profitSheet={profitSheet} csmSheet={csmSheet} ifieSheet={ifieSheet} filters={filters} />
-      </DashboardCard>
-
-      <DashboardCard
         title="现行 vs IFRS17 税前营业利润差异"
         subtitle="按底稿 waterfall 口径展示各利源 driver 的桥接路径"
         action={<button onClick={() => onOpenSheet('现行vsI17_利源分析')}>利源表</button>}
@@ -3720,6 +3726,14 @@ function ManagementDashboard({
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </DashboardCard>
+
+      <DashboardCard
+        title="IFRS17 Driver Tree"
+        subtitle="Demo / 示例结构：放在 Level 3 利源图下方，用更高画布展示利润、保险服务业绩、投资服务业绩、CSM、IFIE 的层层展开。"
+        className="dashboard-card--wide"
+      >
+        <DriverTreeDemo profitSheet={profitSheet} csmSheet={csmSheet} ifieSheet={ifieSheet} filters={filters} />
       </DashboardCard>
     </div>
   )
